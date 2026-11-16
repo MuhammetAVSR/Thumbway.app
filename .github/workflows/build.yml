@@ -26,17 +26,11 @@ jobs:
         distribution: 'temurin'
         java-version: '17'
 
-    - name: Android SDK Kur
-      uses: android-actions/setup-android@v3
-
-    - name: Gradle Yapilandirmasini Duzelt ve Derle
+    - name: SDK Lisanslarini Onayla ve Derle
       run: |
+        yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null 2>&1 || true
         cd proje
         python3 -c "
-        with open('settings.gradle.kts', 'r') as f:
-            content = f.read()
-
-        # foojay eklentisi ve eksik gradlePluginPortal sorununu kokten coz
         new_settings = '''pluginManagement {
             repositories {
                 google()
@@ -57,7 +51,6 @@ jobs:
         with open('settings.gradle.kts', 'w') as f:
             f.write(new_settings)
         "
-        # Eger gradle-wrapper.properties varsa orijinal surumu kullan, yoksa Gradle 8.7 kur
         if [ -f "gradle/wrapper/gradle-wrapper.properties" ]; then
           GRADLE_VER=$(grep distributionUrl gradle/wrapper/gradle-wrapper.properties | sed -E 's/.*gradle-([0-9.]+)-.*/\1/')
         else
