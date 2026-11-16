@@ -1,14 +1,44 @@
-name: Dosyalari Gor
+name: Build APK
 
 on:
   push:
     branches: [ main, master ]
 
 jobs:
-  kontrol:
+  build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    - name: ZIP Icerigini Listele
+    - name: Kodlari Al
+      uses: actions/checkout@v4
+
+    - name: ZIP Dosyasini Ac
       run: |
-        python3 -c "import zipfile, glob; z=zipfile.ZipFile(glob.glob('*.zip')[0]); print('\n'.join(z.namelist()[:40]))"
+        python3 -c "
+        import zipfile, glob
+        zips = glob.glob('*.zip')
+        with zipfile.ZipFile(zips[0], 'r') as z:
+            z.extractall('proje')
+        "
+
+    - name: Java Kur
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+
+    - name: APK Derle
+      run: |
+        cd proje
+        ls -la
+        if [ -f "gradlew" ]; then
+          chmod +x gradlew
+          ./gradlew assembleDebug
+        else
+          gradle assembleDebug
+        fi
+
+    - name: APK Yukle
+      uses: actions/upload-artifact@v4
+      with:
+        name: Thumbway-APK
+        path: 'proje/app/build/outputs/apk/debug/app-debug.apk'
