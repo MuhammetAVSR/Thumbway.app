@@ -31,11 +31,18 @@ jobs:
 
     - name: APK Derle
       run: |
-        GRADLEW=$(find proje -name "gradlew" -type f | head -n 1)
-        DIR=$(dirname "$GRADLEW")
-        cd "$DIR"
-        chmod +x gradlew
-        ./gradlew assembleDebug
+        # build.gradle veya build.gradle.kts olan ana proje dizinini bul
+        BUILD_FILE=$(find proje -maxdepth 3 \( -name "build.gradle" -o -name "build.gradle.kts" \) | head -n 1)
+        if [ -z "$BUILD_FILE" ]; then
+          echo "HATA: Proje dosyasi bulunamadi! ZIP icerigi:"
+          find proje -maxdepth 3
+          exit 1
+        fi
+        PROJECT_DIR=$(dirname "$BUILD_FILE")
+        echo "Proje dizini: $PROJECT_DIR"
+        cd "$PROJECT_DIR"
+        # Sistemdeki hazir Gradle ile derle
+        gradle assembleDebug
 
     - name: APK Yukle
       uses: actions/upload-artifact@v4
