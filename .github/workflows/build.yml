@@ -1,43 +1,21 @@
-name: Build APK
+name: Android CI
 
 on:
   push:
-    branches: [ main, master ]
+    branches:
+      - main
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - name: Kodlari Al
-      uses: actions/checkout@v4
-
-    - name: ZIP Dosyasini Ac
-      run: |
-        python3 -c "
-        import zipfile, glob
-        zips = glob.glob('*.zip')
-        with zipfile.ZipFile(zips[0], 'r') as z:
-            z.extractall('proje')
-        "
-
-    - name: Java Kur
-      uses: actions/setup-java@v4
-      with:
-        distribution: 'temurin'
-        java-version: '17'
-
-    - name: Hata Veren Eklentiyi Temizle ve Derle
-      run: |
-        cd proje
-        # settings.gradle.kts icindeki foojay eklenti satirini kaldir
-        sed -i '/foojay-resolver-convention/d' settings.gradle.kts
-        # Projenin kendi Gradle surumuyle derle
-        gradle wrapper
-        chmod +x gradlew
-        ./gradlew assembleDebug
-
-    - name: APK Yukle
-      uses: actions/upload-artifact@v4
-      with:
-        name: Thumbway-APK
-        path: 'proje/app/build/outputs/apk/debug/app-debug.apk'
+      - uses: actions/checkout@v3
+      - name: Set up JDK
+        uses: actions/setup-java@v3
+        with:
+          java-version: '11'
+          distribution: 'temurin'
+      - name: Gradle Build
+        uses: gradle/gradle-build-action@v2
+        with:
+          arguments: assembleRelease
