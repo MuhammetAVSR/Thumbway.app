@@ -1,51 +1,14 @@
-name: Build APK
+name: Dosyalari Gor
 
 on:
   push:
     branches: [ main, master ]
 
 jobs:
-  build:
+  kontrol:
     runs-on: ubuntu-latest
     steps:
-    - name: Kodlari Al
-      uses: actions/checkout@v4
-
-    - name: ZIP Dosyasini Ac
+    - uses: actions/checkout@v4
+    - name: ZIP Icerigini Listele
       run: |
-        python3 -c "
-        import zipfile, glob
-        zips = glob.glob('*.zip')
-        if not zips:
-            print('ZIP bulunamadi!')
-            exit(1)
-        with zipfile.ZipFile(zips[0], 'r') as z:
-            z.extractall('proje')
-        "
-
-    - name: Java Kur
-      uses: actions/setup-java@v4
-      with:
-        distribution: 'temurin'
-        java-version: '17'
-
-    - name: APK Derle
-      run: |
-        # build.gradle veya build.gradle.kts olan ana proje dizinini bul
-        BUILD_FILE=$(find proje -maxdepth 3 \( -name "build.gradle" -o -name "build.gradle.kts" \) | head -n 1)
-        if [ -z "$BUILD_FILE" ]; then
-          echo "HATA: Proje dosyasi bulunamadi! ZIP icerigi:"
-          find proje -maxdepth 3
-          exit 1
-        fi
-        PROJECT_DIR=$(dirname "$BUILD_FILE")
-        echo "Proje dizini: $PROJECT_DIR"
-        cd "$PROJECT_DIR"
-        # Sistemdeki hazir Gradle ile derle
-        gradle assembleDebug
-
-    - name: APK Yukle
-      uses: actions/upload-artifact@v4
-      with:
-        name: Thumbway-APK
-        path: '**/app-debug.apk'
+        python3 -c "import zipfile, glob; z=zipfile.ZipFile(glob.glob('*.zip')[0]); print('\n'.join(z.namelist()[:40]))"
