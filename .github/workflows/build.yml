@@ -26,16 +26,15 @@ jobs:
         distribution: 'temurin'
         java-version: '17'
 
-    - name: APK Derle
+    - name: Hata Veren Eklentiyi Temizle ve Derle
       run: |
         cd proje
-        ls -la
-        if [ -f "gradlew" ]; then
-          chmod +x gradlew
-          ./gradlew assembleDebug
-        else
-          gradle assembleDebug
-        fi
+        # settings.gradle.kts icindeki foojay eklenti satirini kaldir
+        sed -i '/foojay-resolver-convention/d' settings.gradle.kts
+        # Projenin kendi Gradle surumuyle derle
+        gradle wrapper
+        chmod +x gradlew
+        ./gradlew assembleDebug
 
     - name: APK Yukle
       uses: actions/upload-artifact@v4
