@@ -1,51 +1,75 @@
-name: Build Thumbway Debug APK
- 
+name: Build APK
+
 on:
   push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
-  workflow_dispatch:
- 
+    branches: [ main, master ]
+
 jobs:
-  build-debug-apk:
-    name: Assemble Debug APK (app)
+  build:
     runs-on: ubuntu-latest
- 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
- 
-      - name: Set up JDK 17 (Temurin)
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '17'
- 
-      - name: Setup Gradle & Cache
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          cache-read-only: ${{ github.ref != 'refs/heads/main' }}
- 
-      - name: Grant execute permission for gradlew
-        run: chmod +x ./gradlew
- 
-      - name: Build Debug APK with Gradle
-        run: ./gradlew :app:assembleDebug --stacktrace --no-daemon
- 
-      - name: Verify generated APK output
-        run: |
-          echo "Generated APK artifacts:"
-          find app/build/outputs/apk -type f -name "*.apk" -exec ls -lh {} +
- 
-      - name: Upload Debug APK artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: thumbway-debug-apk
-          path: |
-            app/build/outputs/apk/**/debug/*.apk
-            !app/build/outputs/apk/**/debug/*-unaligned.apk
-          retention-days: 14
-          if-no-files-found: error
+    - name: Kodlari Al
+      uses: actions/checkout@v4
+
+    - name: ZIP Dosyasini Ac
+      run: |
+        python3 -c "
+        import zipfile, glob
+        zips = glob.glob('*.zip')
+        with zipfile.ZipFile(zips[0], 'r') as z:
+            z.extractall('proje')
+        "
+
+    - name: Java Kur
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+
+    - name: Android SDK Kur
+      uses: android-actions/setup-android@v3
+
+    - name: Gradle Yapilandirmasini Duzelt ve Derle
+      run: |
+        cd proje
+        python3 -c "
+        with open('settings.gradle.kts', 'r') as f:
+            content = f.read()
+
+        # foojay eklentisi ve eksik gradlePluginPortal sorununu kokten coz
+        new_settings = '''pluginManagement {
+            repositories {
+                google()
+                mavenCentral()
+                gradlePluginPortal()
+            }
+        }
+        dependencyResolutionManagement {
+            repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+            repositories {
+                google()
+                mavenCentral()
+            }
+        }
+        rootProject.name = \"Thumbway\"
+        include(\":app\")
+        '''
+        with open('settings.gradle.kts', 'w') as f:
+            f.write(new_settings)
+        "
+        # Eger gradle-wrapper.properties varsa orijinal surumu kullan, yoksa Gradle 8.7 kur
+        if [ -f "gradle/wrapper/gradle-wrapper.properties" ]; then
+          GRADLE_VER=$(grep distributionUrl gradle/wrapper/gradle-wrapper.properties | sed -E 's/.*gradle-([0-9.]+)-.*/\1/')
+        else
+          GRADLE_VER="8.7"
+        fi
+        echo "Kullanilan Gradle Surumu: $GRADLE_VER"
+        wget -q "https://services.gradle.org/distributions/gradle-${GRADLE_VER}-bin.zip" -O gradle.zip
+        unzip -q gradle.zip -d /opt/gradle
+        /opt/gradle/gradle-${GRADLE_VER}/bin/gradle assembleDebug --no-daemon
+
+    - name: APK Yukle
+      uses: actions/upload-artifact@v4
+      with:
+        name: Thumbway-APK
+        path: 'proje/app/build/outputs/apk/debug/app-debug.apk'
