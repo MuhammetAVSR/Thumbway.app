@@ -1,2 +1,19 @@
-    - name: Android SDK Kur
-      uses: android-actions/setup-android@v3
+name: Android Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Kaynak kodu al
+        uses: actions/checkout@v4
+
+      - name: Android SDK Kur
+        uses: android-actions/setup-android@v3
