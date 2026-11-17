@@ -73,7 +73,7 @@ jobs:
             chmod +x ./gradlew
             ./gradlew --no-daemon assembleDebug
           else
-            echo 'Gradle wrapper not found; building with the installed Gradle 8.9.'
+            echo 'Gradle wrapper not found; building with the installed Gradle 9.3.1'
             gradle --no-daemon assembleDebug
           fi
           apk="$(find . -type f -path '*/build/outputs/apk/debug/*.apk' -print -quit)"
