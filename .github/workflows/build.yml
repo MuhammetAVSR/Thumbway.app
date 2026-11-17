@@ -1,19 +1,86 @@
-name: Android Build
+name: Build Thumbway APK
 
 on:
   push:
     branches: [main]
-  pull_request:
-    branches: [main]
   workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Kaynak kodu al
+      - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Android SDK Kur
-        uses: android-actions/setup-android@v3
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install Android SDK packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          if [ ! -x "$SDKMANAGER" ]; then
+            SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager -print -quit)"
+          fi
+          test -x "$SDKMANAGER"
+          yes | "$SDKMANAGER" --licenses >/dev/null 2>&1 || true
+          "$SDKMANAGER" \
+            'platform-tools' \
+            'platforms;android-35' \
+            'platforms;android-36' \
+            'build-tools;35.0.0' \
+            'build-tools;36.0.0'
+
+      - name: Extract application archive and locate Gradle project
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive="$(find . -maxdepth 1 -type f -iname '*.zip' -print -quit)"
+          if [ -z "$archive" ]; then
+            echo 'No application ZIP was found in the repository root.' >&2
+            exit 1
+          fi
+          mkdir -p app-source
+          unzip -q "$archive" -d app-source
+          settings_file="$(find app-source -type f \( -name settings.gradle -o -name settings.gradle.kts \) -not -path '*/build/*' -print -quit)"
+          if [ -z "$settings_file" ]; then
+            echo 'No Gradle settings file found in the application ZIP.' >&2
+            find app-source -maxdepth 4 -type f | head -100
+            exit 1
+          fi
+          project_dir="$(dirname "$settings_file")"
+          echo "ANDROID_PROJECT_DIR=$project_dir" >> "$GITHUB_ENV"
+          echo "Android project: $project_dir"
+
+      - name: Build debug APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$ANDROID_PROJECT_DIR"
+          if [ ! -f ./gradlew ]; then
+            echo 'Gradle wrapper (gradlew) is missing from the Android project.' >&2
+            exit 1
+          fi
+          chmod +x ./gradlew
+          ./gradlew --no-daemon assembleDebug
+          apk="$(find . -type f -path '*/build/outputs/apk/debug/*.apk' -print -quit)"
+          if [ -z "$apk" ]; then
+            echo 'Build completed without producing a debug APK.' >&2
+            exit 1
+          fi
+          echo "Built APK: $apk"
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: thumbway-debug-apk
+          path: app-source/**/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+          retention-days: 14
